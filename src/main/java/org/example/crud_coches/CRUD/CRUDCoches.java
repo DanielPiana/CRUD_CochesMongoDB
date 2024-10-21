@@ -11,6 +11,7 @@ import org.example.crud_coches.Controller.HelloController;
 import org.example.crud_coches.domain.Coche;
 
 import java.util.ArrayList;
+import java.util.Objects;
 
 
 public class CRUDCoches {
@@ -66,5 +67,23 @@ public class CRUDCoches {
             cursor.close();
         }
         return observableList;
+    }
+
+    public static boolean existe(Coche coche) {
+        MongoCursor<Document> cursor = HelloController.collection.find().iterator();
+        Gson gson = new Gson();
+        try {
+            while (cursor.hasNext()) {
+                Coche coche2 = gson.fromJson(cursor.next().toJson(), Coche.class);
+                if (Objects.equals(coche.getMatricula(), coche2.getMatricula())) {
+                    return true;
+                }
+            }
+        }catch (Exception e) {
+            System.out.println(e.getMessage());
+        }finally {
+            cursor.close();
+        }
+        return false;
     }
 }

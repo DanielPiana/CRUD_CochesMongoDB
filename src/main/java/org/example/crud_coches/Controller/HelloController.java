@@ -12,6 +12,7 @@ import org.bson.Document;
 import org.example.crud_coches.CRUD.CRUDCoches;
 import org.example.crud_coches.Clases.Conexion;
 import org.example.crud_coches.Utilities.Alerts;
+import org.example.crud_coches.Utilities.Comprobaciones;
 import org.example.crud_coches.domain.Coche;
 
 import java.net.URL;
@@ -24,9 +25,6 @@ import static org.example.crud_coches.CRUD.CRUDCoches.listar;
 public class HelloController implements Initializable {
     //Creamos MongoCollection para poder insertar documentos
     public static MongoCollection<Document> collection=null;
-
-    MongoClient con;
-    String[] listaTipos = {"Gasolina","Diesel","Híbrido","Eléctrico"};
 
     @FXML
     private TableColumn<Coche,String> columnaMatricula;
@@ -55,6 +53,8 @@ public class HelloController implements Initializable {
     @FXML
     private TextField txtFieldModelo;
 
+    MongoClient con;
+    String[] listaTipos = {"Gasolina","Diesel","Híbrido","Eléctrico"};
 
     public void onButtonEliminarClick() {
         Coche coche = tableCoches.getSelectionModel().getSelectedItem();
@@ -65,22 +65,36 @@ public class HelloController implements Initializable {
     }
 
     public void onButtonModificarClick() {
-        /*Asumo que la matricula es primary key y no debería cambiar asi que creo un coche con la matricula del coche seleccionado
-        * en la tabla y los datos a modificar, Marca,Modelo y Tipo.*/
-        Coche cocheReferencia = tableCoches.getSelectionModel().getSelectedItem();
-        Coche coche = new Coche(cocheReferencia.getMatricula(), txtFieldMarca.getText(),txtFieldModelo.getText(),cbTipo.getValue());
-        CRUDCoches.modificarCoche(coche);
-        cargarTabla();
-        setearTextFieldsVacios();
-        Alerts.alertaGeneral("Coche modificado correctamente","INFORMATION");
+        if (Comprobaciones.textosVacios(cbTipo,txtFieldMarca,txtFieldModelo) && tableCoches.getSelectionModel().getSelectedItem()!=null) {
+            /*Asumo que la matricula es primary key y no debería cambiar asi que creo un coche con la matricula del coche seleccionado
+             * en la tabla y los datos a modificar, Marca,Modelo y Tipo.*/
+            Coche cocheReferencia = tableCoches.getSelectionModel().getSelectedItem();
+            Coche coche = new Coche(cocheReferencia.getMatricula(), txtFieldMarca.getText(),txtFieldModelo.getText(),cbTipo.getValue());
+            CRUDCoches.modificarCoche(coche);
+            cargarTabla();
+            setearTextFieldsVacios();
+            Alerts.alertaGeneral("Coche modificado correctamente","INFORMATION");
+        } else {
+            Alerts.alertaGeneral("Debe rellenar los campos a modificar y seleccionar un coche en la tabla\nRecuerda que la matrícula no se puede cambiar","INFORMATION");
+        }
+
     }
 
     public void onButtonGuardarClick() {
-        Coche coche = new Coche(txtFieldMatricula.getText(),txtFieldMarca.getText(),txtFieldModelo.getText(),cbTipo.getSelectionModel().getSelectedItem());
-        CRUDCoches.insertarCoche(coche);
-        cargarTabla();
-        setearTextFieldsVacios();
-        Alerts.alertaGeneral("Coche guardado correctamente","INFORMATION");
+        if (Comprobaciones.textosVacios(cbTipo,txtFieldMatricula,txtFieldMarca,txtFieldModelo)) {
+            Coche coche = new Coche(txtFieldMatricula.getText(),txtFieldMarca.getText(),txtFieldModelo.getText(),cbTipo.getSelectionModel().getSelectedItem());
+            if (!CRUDCoches.existe(coche)) {
+                CRUDCoches.insertarCoche(coche);
+                cargarTabla();
+                setearTextFieldsVacios();
+                Alerts.alertaGeneral("Coche guardado correctamente","INFORMATION");
+            } else {
+              Alerts.alertaGeneral("Esa matrícula ya existe","INFORMATION");
+            }
+        } else {
+            Alerts.alertaGeneral("Debe rellenar todos los campos","WARNING");
+        }
+
     }
     public void onButtonLimpiarClick() {
         setearTextFieldsVacios();
@@ -112,10 +126,14 @@ public class HelloController implements Initializable {
     public void onTableClick() {
         //Metodo para setear en los textFields y el comboBox lo seleccionado en la tabla
         Coche coche = tableCoches.getSelectionModel().getSelectedItem();
-        txtFieldMarca.setText(coche.getMarca());
-        txtFieldMatricula.setText(coche.getMatricula());
-        txtFieldModelo.setText(coche.getModelo());
-        cbTipo.setValue(coche.getTipo());
+        if (coche == null) {
+            Alerts.alertaGeneral("No ha seleccionado nada","INFORMATION");
+        } else {
+            txtFieldMarca.setText(coche.getMarca());
+            txtFieldMatricula.setText(coche.getMatricula());
+            txtFieldModelo.setText(coche.getModelo());
+            cbTipo.setValue(coche.getTipo());
+        }
     }
     public void setearTextFieldsVacios() {
         //Metodo para limpiar los textFields y el comboBox
